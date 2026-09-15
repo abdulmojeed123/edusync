@@ -71,6 +71,7 @@ const IconClock = (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M1
 const IconMapPin = (p) => <Icon {...p}><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 1 1 18 0z"/><circle cx="12" cy="10" r="3"/></Icon>;
 const IconCheckCircle = (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 5-5"/></Icon>;
 const IconXCircle = (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5l5 5M14.5 9.5l-5 5"/></Icon>;
+const IconTrash = (p) => <Icon {...p}><polyline points="3,6 5,6 21,6"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></Icon>;
 const IconAlertTriangle = (p) => <Icon {...p}><path d="M12 3l9.5 17H2.5z"/><line x1="12" y1="9.5" x2="12" y2="14"/><circle cx="12" cy="17.2" r="0.6" fill="currentColor" stroke="none"/></Icon>;
 const IconInfo = (p) => <Icon {...p}><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.6" r="0.6" fill="currentColor" stroke="none"/></Icon>;
 const IconSync = (p) => <Icon {...p}><path d="M21 12a9 9 0 0 1-15.5 6.4L3 16"/><path d="M3 12a9 9 0 0 1 15.5-6.4L21 8"/><path d="M3 16v4h4"/><path d="M21 8V4h-4"/></Icon>;
@@ -101,7 +102,7 @@ const ICON_REGISTRY = {
   edit: IconEdit, userPlus: IconUserPlus, calendar: IconCalendar, sync: IconSync, upload: IconUpload,
   checkCircle: IconCheckCircle, mapPin: IconMapPin, users: IconUsers, xCircle: IconXCircle,
   alertTriangle: IconAlertTriangle, userX: IconUserX, userCheck: IconUserCheck, send: IconSend,
-  repeat: IconRepeat, info: IconInfo, bell: IconBell, fileText: IconFileText, activity: IconActivity,
+  repeat: IconRepeat, info: IconInfo, bell: IconBell, fileText: IconFileText, activity: IconActivity, trash: IconTrash,
 };
 const resolveIcon = (key) => ICON_REGISTRY[key] || IconInfo;
 
@@ -2088,7 +2089,7 @@ const ExcelWorkflowModal = ({ open, mode, examsList, staffList, onClose, onConfi
 };
 
 /* ============================= EXAMINATION DETAIL ============================= */
-const ExaminationDetailDrawer = ({ open, exam, examsList, staffList, reminders, activityLog, onClose, onEdit, onReschedule, onCancel, onAddInvigilator, onRemoveInvigilator }) => {
+const ExaminationDetailDrawer = ({ open, exam, examsList, staffList, reminders, activityLog, onClose, onEdit, onReschedule, onCancel, onDelete, onAddInvigilator, onRemoveInvigilator }) => {
   const [addSelect, setAddSelect] = useState("");
   useEffect(() => { setAddSelect(""); }, [exam && exam.id]);
 
@@ -2208,6 +2209,11 @@ const ExaminationDetailDrawer = ({ open, exam, examsList, staffList, reminders, 
             <Button variant="secondary" icon={IconSync} onClick={() => onReschedule(exam)}>Reschedule</Button>
             <Button variant="danger" icon={IconXCircle} onClick={() => onCancel(exam)}>Cancel Examination</Button>
           </div>
+        ) : exam.status === "Cancelled" ? (
+          <div className="mt-6 pt-5 border-t border-slate-100">
+            <p className="text-xs text-slate-400 mb-3">This examination is cancelled and can no longer be edited, rescheduled, or cancelled again. It can be permanently deleted if it's no longer needed for historical records.</p>
+            <Button variant="danger" icon={IconTrash} onClick={() => onDelete(exam)}>Delete Exam</Button>
+          </div>
         ) : (
           <div className="mt-6 pt-5 border-t border-slate-100 text-xs text-slate-400">
             This examination is {exam.status.toLowerCase()} and can no longer be edited, rescheduled, or cancelled.
@@ -2219,7 +2225,7 @@ const ExaminationDetailDrawer = ({ open, exam, examsList, staffList, reminders, 
 };
 
 /* ============================= EXAMINATIONS PAGE (fully functional) ============================= */
-const ExaminationsPage = ({ examsList, staffList, onAdd, onView, onEdit, onReschedule, onCancel, onImportExcel, onSyncExcel }) => {
+const ExaminationsPage = ({ examsList, staffList, onAdd, onView, onEdit, onReschedule, onCancel, onDelete, onImportExcel, onSyncExcel }) => {
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("all");
 
@@ -2304,6 +2310,9 @@ const ExaminationsPage = ({ examsList, staffList, onAdd, onView, onEdit, onResch
                               <IconActionBtn title="Cancel" onClick={() => onCancel(e)} icon={IconXCircle} danger />
                             </React.Fragment>
                           )}
+                          {e.status === "Cancelled" && (
+                            <IconActionBtn title="Delete Exam" onClick={() => onDelete(e)} icon={IconTrash} danger />
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -2333,6 +2342,9 @@ const ExaminationsPage = ({ examsList, staffList, onAdd, onView, onEdit, onResch
                         <Button variant="secondary" className="!px-3 !py-1.5 text-xs" icon={IconSync} onClick={() => onReschedule(e)}>Reschedule</Button>
                         <Button variant="danger" className="!px-3 !py-1.5 text-xs" icon={IconXCircle} onClick={() => onCancel(e)}>Cancel</Button>
                       </React.Fragment>
+                    )}
+                    {e.status === "Cancelled" && (
+                      <Button variant="danger" className="!px-3 !py-1.5 text-xs" icon={IconTrash} onClick={() => onDelete(e)}>Delete Exam</Button>
                     )}
                   </div>
                 </div>
@@ -3233,6 +3245,7 @@ function App() {
   };
 
   const askCancelExam = (exam) => { setExamView(null); setConfirmDialog({ type: "cancelExam", exam }); };
+  const askDeleteExam = (exam) => { setExamView(null); setConfirmDialog({ type: "deleteExam", exam }); };
   const askResetLocalData = () => setConfirmDialog({ type: "resetLocalData" });
 
   /* ---- Demo Clock: simulated "current time" only — never rewrites examination schedules ---- */
@@ -3396,6 +3409,13 @@ function App() {
       setNotifications(prevN => [...notes, ...prevN]);
       logActivity(`Cancellation notification sent to ${notes.length} active staff member${notes.length === 1 ? "" : "s"}`, "xCircle", "danger", { examId: exam.id });
       showToast("Examination cancelled.");
+    } else if (type === "deleteExam") {
+      const exam = examsList.find(e => e.id === confirmDialog.exam.id) || confirmDialog.exam;
+      if (exam.status !== "Cancelled") { showToast("Only cancelled examinations can be deleted."); setConfirmDialog(null); return; }
+      setExamsList(list => list.filter(e => e.id !== exam.id));
+      setReminders(list => list.filter(r => r.examId !== exam.id));
+      logActivity(`Cancelled examination deleted: ${exam.subject} (${exam.className})`, "trash", "danger", { examId: exam.id });
+      showToast("Cancelled examination deleted.");
     } else if (type === "completeSubmission") {
       const sub = confirmDialog.submission;
       const updated = { ...sub, status: "Completed", updatedAt: now };
@@ -3438,7 +3458,7 @@ function App() {
       );
       case "examinations": return (
         <ExaminationsPage examsList={examsList} staffList={staffList}
-          onAdd={openAddExam} onView={openViewExam} onEdit={openEditExam} onReschedule={openRescheduleExam} onCancel={askCancelExam}
+          onAdd={openAddExam} onView={openViewExam} onEdit={openEditExam} onReschedule={openRescheduleExam} onCancel={askCancelExam} onDelete={askDeleteExam}
           onImportExcel={openImportExcel} onSyncExcel={openSyncExcel} />
       );
       case "staff": return (
@@ -3485,6 +3505,12 @@ function App() {
       return { icon: IconXCircle, color: "danger", title: `Cancel ${exam.subject} (${exam.className})?`,
         message: "Cancel this examination? The examination will remain in historical records, but future reminders will be cancelled.",
         confirmLabel: "Cancel Examination" };
+    }
+    if (confirmDialog.type === "deleteExam") {
+      const exam = confirmDialog.exam;
+      return { icon: IconTrash, color: "danger", title: `Permanently delete ${exam.subject} (${exam.className})?`,
+        message: "This is a permanent deletion. This cancelled examination and its remaining reminder records will be removed and cannot be recovered. This does not affect any other examination, staff, question submission, or notification record.",
+        confirmLabel: "Delete Permanently" };
     }
     if (confirmDialog.type === "completeSubmission") {
       const sub = confirmDialog.submission;
@@ -3600,7 +3626,7 @@ function App() {
         onClose={() => setRescheduleExam(null)} onSubmit={handleRescheduleSubmit} />
 
       <ExaminationDetailDrawer open={!!examView} exam={examView} examsList={examsList} staffList={staffList} reminders={reminders} activityLog={activityLog}
-        onClose={() => setExamView(null)} onEdit={openEditExam} onReschedule={openRescheduleExam} onCancel={askCancelExam}
+        onClose={() => setExamView(null)} onEdit={openEditExam} onReschedule={openRescheduleExam} onCancel={askCancelExam} onDelete={askDeleteExam}
         onAddInvigilator={handleAddInvigilatorToExam} onRemoveInvigilator={handleRemoveInvigilatorFromExam} />
 
       <ExcelWorkflowModal open={!!excelWorkflow} mode={excelWorkflow} examsList={examsList} staffList={staffList}
